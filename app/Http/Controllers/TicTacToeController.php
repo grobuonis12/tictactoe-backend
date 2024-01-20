@@ -3,65 +3,68 @@
 // app/Http/Controllers/TicTacToeController.php
 
 use Illuminate\Support\Facades\DB;
-
-// ...
+use App\Models\Game;
+use App\Models\GameMove;
 
 class TicTacToeController extends Controller
 {
     public function makeMove(Request $request)
-    {
-        // Validate the request
-        $request->validate([
-            'row' => 'required|integer',
-            'col' => 'required|integer',
-            'player' => 'required|string|in:X,O',
-            'gameId' => 'required|integer',
-        ]);
-    
-        // Handle the move logic and update the action log
-        $row = $request->input('row');
-        $col = $request->input('col');
-        $player = $request->input('player');
-        $gameId = $request->input('gameId');
-    
-        // Retrieve the game or create a new one if it doesn't exist
-        $game = Game::find($gameId);
-        if (!$game) {
-            $game = Game::create();
-        }
-    
-        // Check if the cell is empty
-        if (GameMove::where(['game_id' => $game->id, 'row' => $row, 'col' => $col])->exists()) {
-            // Cell is already occupied, return an error response
-            return response()->json(['error' => 'Cell is already occupied']);
-        }
-    
-        // Update the board with the player's move
-        GameMove::create([
-            'game_id' => $game->id,
-            'player' => $player,
-            'row' => $row,
-            'col' => $col,
-        ]);
-    
-        // Check for a winner or tie
-        $winner = $this->checkWinner($game);
-        $tie = $this->checkTie($game);
-    
-        return response()->json(['success' => true, 'game' => $game, 'winner' => $winner, 'tie' => $tie]);
+{
+    // Validate the request
+    $request->validate([
+        'row' => 'required|integer',
+        'col' => 'required|integer',
+        'player' => 'required|string|in:X,O',
+        'gameId' => 'required|integer',
+    ]);
+
+    // Handle the move logic and update the action log
+    $row = $request->input('row');
+    $col = $request->input('col');
+    $player = $request->input('player');
+    $gameId = $request->input('gameId');
+
+    // Retrieve the game or create a new one if it doesn't exist
+    $game = Game::find($gameId);
+    if (!$game) {
+        $game = Game::create();
     }
-    
 
-    public function getBoard(Request $request)
-    {
-        $gameId = $request->input('gameId');
-        $gameMoves = GameMove::where('game_id', $gameId)->get();
-
-        // Build the board based on game moves
-        $board = $this->buildBoard($gameMoves);
-
-        return response()->json(['success' => true, 'board' => $board]);
+    // Check if the cell is empty
+    if (GameMove::where(['game_id' => $game->id, 'row' => $row, 'col' => $col])->exists()) {
+        // Cell is already occupied, return an error response
+        return response()->json(['error' => 'Cell is already occupied']);
     }
+
+    // Update the board with the player's move
+    GameMove::create([
+        'game_id' => $game->id,
+        'player' => $player,
+        'row' => $row,
+        'col' => $col,
+    ]);
+
+    // Set the current player for the next move
+    $this->currentPlayer = $player === 'X' ? 'O' : 'X';
+
+    // Check for a winner or tie
+    $winner = $this->checkWinner($game);
+    $tie = $this->checkTie($game);
+
+    return response()->json(['success' => true, 'game' => $game, 'winner' => $winner, 'tie' => $tie]);
+}   
+
+public function getBoard(Request $request)
+{
+    $gameId = $request->input('gameId');
+    $gameMoves = GameMove::where('game_id', $gameId)->get();
+
+    // Build the board based on game moves
+    $board = $this->buildBoard($gameMoves);
+
+    return response()->json(['success' => true, 'board' => $board]);
+}
+
 
     /**
      * Check if there is a winner in the Tic Tac Toe game.
@@ -71,6 +74,9 @@ class TicTacToeController extends Controller
      */
     protected function checkWinner($game)
     {
+        $gameMoves = GameMove::where('game_id', $game->id)->get();
+    $board = $this->buildBoard($gameMoves);
+
         // Logic to check for a winner
         // Example logic: Check rows, columns, and diagonals for a winner
 
