@@ -20,6 +20,9 @@ Route::get('test', function () {
     return 'success';
 });
 
-// Tic-Tac-Toe routes
-Route::post('/make-move', [TicTacToeController::class, 'makeMove']);
-Route::get('/get-action-log', [TicTacToeController::class, 'getActionLog']);
+// Sanctum routes
+Route::group(['middleware' => ['auth:sanctum']], function () {
+    Route::post('/make-move', [TicTacToeController::class, 'makeMove']);
+    Route::get('/get-action-log', [TicTacToeController::class, 'getActionLog']);
+});
+
