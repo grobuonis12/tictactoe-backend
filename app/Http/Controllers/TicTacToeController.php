@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController; // Import the BaseController class
 use Illuminate\Support\Facades\DB;
 use App\Models\Game;
@@ -10,51 +10,50 @@ use App\Models\GameMove;
 class TicTacToeController extends BaseController // Extend BaseController
 {
     public function makeMove(Request $request)
-{
-    // Validate the request
-    $request->validate([
-        'row' => 'required|integer',
-        'col' => 'required|integer',
-        'player' => 'required|string|in:X,O',
-        'gameId' => 'required|integer',
-    ]);
-
-    // Handle the move logic and update the action log
-    $row = $request->input('row');
-    $col = $request->input('col');
-    $player = $request->input('player');
-    $gameId = $request->input('gameId');
-
-    // Retrieve the game or create a new one if it doesn't exist
-    $game = Game::find($gameId);
-    if (!$game) {
-        $game = Game::create();
+    {
+        // Validate the request
+        $request->validate([
+            'row' => 'required|integer',
+            'col' => 'required|integer',
+            'player' => 'required|string|in:X,O',
+            'board' => 'required|array', // Add validation for the board
+        ]);
+    
+        // Handle the move logic and update the action log
+        $row = $request->input('row');
+        $col = $request->input('col');
+        $player = $request->input('player');
+        $board = $request->input('board');
+    
+        // Check if the gameId is provided in the request
+        $gameId = $request->input('gameId');
+    
+        // Retrieve the game or create a new one if it doesn't exist
+        $game = $gameId ? Game::find($gameId) : Game::create();
+    
+        // Check if the cell is empty
+        if (GameMove::where(['game_id' => $game->id, 'row' => $row, 'col' => $col])->exists()) {
+            // Cell is already occupied, return an error response
+            return response()->json(['error' => 'Cell is already occupied']);
+        }
+    
+        // Update the board with the player's move
+        GameMove::create([
+            'game_id' => $game->id,
+            'player' => $player,
+            'row' => $row,
+            'col' => $col,
+        ]);
+    
+        // Set the current player for the next move
+        $this->currentPlayer = $player === 'X' ? 'O' : 'X';
+    
+        // Check for a winner or tie
+        $winner = $this->checkWinner($game);
+        $tie = $this->checkTie($game);
+    
+        return response()->json(['success' => true, 'game' => $game, 'winner' => $winner, 'tie' => $tie]);
     }
-
-    // Check if the cell is empty
-    if (GameMove::where(['game_id' => $game->id, 'row' => $row, 'col' => $col])->exists()) {
-        // Cell is already occupied, return an error response
-        return response()->json(['error' => 'Cell is already occupied']);
-    }
-
-    // Update the board with the player's move
-    GameMove::create([
-        'game_id' => $game->id,
-        'player' => $player,
-        'row' => $row,
-        'col' => $col,
-    ]);
-
-    // Set the current player for the next move
-    $this->currentPlayer = $player === 'X' ? 'O' : 'X';
-
-    // Check for a winner or tie
-    $winner = $this->checkWinner($game);
-    $tie = $this->checkTie($game);
-
-    return response()->json(['success' => true, 'game' => $game, 'winner' => $winner, 'tie' => $tie]);
-}   
-
 public function getBoard(Request $request)
 {
     $gameId = $request->input('gameId');
@@ -79,46 +78,43 @@ public function getBoard(Request $request)
     $board = $this->buildBoard($gameMoves);
 
         // Logic to check for a winner
-        // Example logic: Check rows, columns, and diagonals for a winner
 
         // Check rows
         for ($i = 0; $i < 3; $i++) {
             if (
-                $this->board[$i][0] === $this->currentPlayer &&
-                $this->board[$i][1] === $this->currentPlayer &&
-                $this->board[$i][2] === $this->currentPlayer
+                $board[$i][0] === $this->currentPlayer &&
+                $board[$i][1] === $this->currentPlayer &&
+                $board[$i][2] === $this->currentPlayer
             ) {
                 return $this->currentPlayer;
             }
         }
-
-        // Check columns
+        
         for ($i = 0; $i < 3; $i++) {
             if (
-                $this->board[0][$i] === $this->currentPlayer &&
-                $this->board[1][$i] === $this->currentPlayer &&
-                $this->board[2][$i] === $this->currentPlayer
+                $board[0][$i] === $this->currentPlayer &&
+                $board[1][$i] === $this->currentPlayer &&
+                $board[2][$i] === $this->currentPlayer
             ) {
                 return $this->currentPlayer;
             }
         }
-
-        // Check diagonals
+        
         if (
-            $this->board[0][0] === $this->currentPlayer &&
-            $this->board[1][1] === $this->currentPlayer &&
-            $this->board[2][2] === $this->currentPlayer
+            $board[0][0] === $this->currentPlayer &&
+            $board[1][1] === $this->currentPlayer &&
+            $board[2][2] === $this->currentPlayer
         ) {
             return $this->currentPlayer;
         }
+        
         if (
-            $this->board[0][2] === $this->currentPlayer &&
-            $this->board[1][1] === $this->currentPlayer &&
-            $this->board[2][0] === $this->currentPlayer
+            $board[0][2] === $this->currentPlayer &&
+            $board[1][1] === $this->currentPlayer &&
+            $board[2][0] === $this->currentPlayer
         ) {
             return $this->currentPlayer;
         }
-
         return null;
     }
 
@@ -149,7 +145,6 @@ public function getBoard(Request $request)
     protected function buildBoard($gameMoves)
     {
         // Logic to build the board based on game moves
-        // You may need to modify this based on your implementation
         $board = [
             ['', '', ''],
             ['', '', ''],

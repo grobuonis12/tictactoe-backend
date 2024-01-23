@@ -12,6 +12,8 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        //
+        'make-move',
+        'get-board',
+        // Add other URIs as needed
     ];
 }
