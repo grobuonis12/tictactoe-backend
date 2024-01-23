@@ -1,12 +1,13 @@
 <?php
 
-// app/Http/Controllers/TicTacToeController.php
+namespace App\Http\Controllers;
 
+use Illuminate\Routing\Controller as BaseController; // Import the BaseController class
 use Illuminate\Support\Facades\DB;
 use App\Models\Game;
 use App\Models\GameMove;
 
-class TicTacToeController extends Controller
+class TicTacToeController extends BaseController // Extend BaseController
 {
     public function makeMove(Request $request)
 {
